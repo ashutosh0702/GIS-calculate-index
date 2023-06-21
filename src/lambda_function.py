@@ -8,7 +8,7 @@ import numpy as np
 
 import rasterio.mask
 from rasterio.warp import calculate_default_transform, reproject, Resampling
-from shapely.geometry import box , Polygon
+from shapely.geometry import box , Polygon , shape
 from pyproj import Proj , CRS , Transformer  
 import sys
 import os
@@ -34,9 +34,9 @@ def get_bbox_and_coords_from_geojson(geojson_str):
     max_x, max_y = max(coord[0] for coord in flattened_coords), max(coord[1] for coord in flattened_coords)
     
     # Return lower left and upper right coordinates
-    bbox = [min_x, min_y, max_x, max_y]
+    bbox = [min_x , min_y , max_x , max_y ]
     
-    
+    print(f"BBOX is : {bbox}")
     return bbox, coordinates
     
 def clipper(sentinel_band_url,shapes,clipped_band):
@@ -48,7 +48,6 @@ def clipper(sentinel_band_url,shapes,clipped_band):
     clipped_band : clipped band name to store in /tmp directory
     
     '''
-    print(sentinel_band_url)
 
     response = requests.get(sentinel_band_url)
 
@@ -56,7 +55,16 @@ def clipper(sentinel_band_url,shapes,clipped_band):
         f.write(response.content)
         
     with rasterio.open("/tmp/band.tif") as src:
-        out_image, out_transform = rasterio.mask.mask(src, [shapes] , crop=True)
+
+        # Create a buffered shape with the specified buffer size
+
+        print(f"Shapes : {shapes}")
+
+        buffered_shape = shapes.buffer(10)
+
+        print(f"Buffered shape : {buffered_shape}")
+
+        out_image, out_transform = rasterio.mask.mask(src, [shapes] , crop=True,all_touched=True)
         out_meta = src.meta.copy()
     
     out_meta.update({
@@ -75,7 +83,7 @@ def clipper(sentinel_band_url,shapes,clipped_band):
         dst.nodata = -9999   
         dst.write(out_image.astype(rasterio.uint16))
 
-    print(os.listdir("/tmp"))
+    
         
 def write_tiff_and_upload(upload_details):
     '''
@@ -147,7 +155,7 @@ def calculate_data(index_name,band_list,meta_details):
     
     calc_index_array = (bandB.astype(float) - bandA.astype(float)) / (bandB + bandA)
 
-    print(calc_index_array)
+    
     
     fileToUpload = f"{fileName}/{sensing_date}_{index_name}.tif"
     
@@ -193,7 +201,7 @@ def lambda_handler(event, context):
     try :
         utm_epsg , utm_zone, sensing_date = "EPSG:"+str(data["features"][0]["properties"]["proj:epsg"]) , data["features"][0]["properties"]['mgrs:utm_zone'] , data["features"][0]["properties"]["created"]
     except:
-        ## SNS notifcations of no data
+        
         topic_arn = "arn:aws:sns:us-west-2:268065301848:NoData-Sentinel-API"
         
         msg = f"No data from Sentinel satellite on {time_range} for farm name : {key}"
