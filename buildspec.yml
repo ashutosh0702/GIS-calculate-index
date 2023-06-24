@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 268065301848.dkr.ecr.us-west-2.amazonaws.com
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t calculate-index .
+      - docker tag calculate-index:latest 268065301848.dkr.ecr.us-west-2.amazonaws.com/calculate-index:latest
+  post_build:
+    commands:
+      - echo Pushing the Docker image to Amazon ECR...
+      - docker push 268065301848.dkr.ecr.us-west-2.amazonaws.com/calculate-index:latest
+     
+      - echo Updating the AWS Lambda function...
+      - aws lambda update-function-code --function-name calculate-index --image-uri 268065301848.dkr.ecr.us-west-2.amazonaws.com/calculate-index:latest
