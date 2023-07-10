@@ -15,6 +15,7 @@ import os
 sys.path.append('/opt')
 
 
+#creating s3 client
 s3 = boto3.client('s3')
 sns = boto3.client('sns')
 stac_api_endpoint = "https://earth-search.aws.element84.com/v1/search"
