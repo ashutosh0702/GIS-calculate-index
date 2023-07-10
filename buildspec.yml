@@ -9,6 +9,7 @@ phases:
     commands:
       - echo Building the Docker image...
       - ls -la
+      
       - docker build -t calculate-index .
       - docker tag calculate-index:latest 268065301848.dkr.ecr.us-west-2.amazonaws.com/calculate-index:latest
   post_build:
